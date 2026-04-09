@@ -1,4 +1,4 @@
-import streamlit as st
+   import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -71,7 +71,7 @@ with tab1:
         # Safe monthly aggregation
         monthly = sub_df.groupby('date')['consumption_qty'].sum().reset_index()
         monthly = monthly.set_index('date').asfreq('MS')
-       cons_series = monthly['consumption_qty'].ffill().bfill()
+        cons_series = monthly['consumption_qty'].ffill().bfill()
         
         # ARIMA
         try:
