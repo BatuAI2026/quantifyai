@@ -124,13 +124,13 @@ with tab2:
     st.dataframe(matrix, use_container_width=True)
 
 st.caption("QuantifyAI v0.2.3 | Fixed datetime & grouping issues")
-        # Create forecast table
-        forecast_table = pd.DataFrame({
-            'Month': future['ds'].iloc[-horizon:].dt.strftime('%Y-%m'),
-            'ARIMA': arima_fc.values.round(0).astype(int),
-            'Prophet': prophet_fc['yhat'].iloc[-horizon:].values.round(0).astype(int),
-            'Ensemble (Recommended)': ensemble_fc.round(0).astype(int)
+# Create forecast table
+forecast_table = pd.DataFrame({
+    'Month': future['ds'].iloc[-horizon:].dt.strftime('%Y-%m'),
+    'ARIMA': arima_fc.values.round(0).astype(int),
+    'Prophet': prophet_fc['yhat'].iloc[-horizon:].values.round(0).astype(int),
+    'Ensemble (Recommended)': ensemble_fc.round(0).astype(int)
         })
         
-        st.subheader(f"Monthly Forecast Table - {prod}")
-        st.dataframe(forecast_table, use_container_width=True)
+st.subheader(f"Monthly Forecast Table - {prod}")
+st.dataframe(forecast_table, use_container_width=True)
