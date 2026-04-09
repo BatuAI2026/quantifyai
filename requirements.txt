@@ -5,3 +5,4 @@ plotly
 statsmodels
 prophet
 scikit-learn
+openpyxl
