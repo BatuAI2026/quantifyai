@@ -124,7 +124,7 @@ with tab2:
     st.dataframe(matrix, use_container_width=True)
 
 st.caption("QuantifyAI v0.2.3 | Fixed datetime & grouping issues")
-        # Create forecast table
+     # Create forecast table
         forecast_table = pd.DataFrame({
             'Month': future['ds'].iloc[-horizon:].dt.strftime('%Y-%m'),
             'ARIMA': arima_fc.values.round(0).astype(int),
