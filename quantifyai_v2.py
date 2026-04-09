@@ -71,8 +71,7 @@ with tab1:
         # Safe monthly aggregation
         monthly = sub_df.groupby('date')['consumption_qty'].sum().reset_index()
         monthly = monthly.set_index('date').asfreq('MS')
-       # Updated syntax for Pandas 2.0+
-cons_series = monthly['consumption_qty'].ffill().bfill()
+       cons_series = monthly['consumption_qty'].ffill().bfill()
         
         # ARIMA
         try:
