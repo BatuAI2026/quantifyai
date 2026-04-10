@@ -6,6 +6,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from prophet import Prophet
 from sklearn.ensemble import IsolationForest
 from io import StringIO
+import anthropic
 
 st.set_page_config(page_title="QuantifyAI v0.2.3", layout="wide")
 st.title("🚀 QuantifyAI v0.2.3")
@@ -57,7 +58,7 @@ else:
 st.header("2. AI Forecasting Engine (QAT + AI Upgrade)")
 horizon = st.slider("Forecast Horizon (months)", 6, 36, 24)
 
-tab1, tab2 = st.tabs(["Consumption Forecast", "Stock Status Matrix (QAT-style)"])
+tab1, tab2, tab3 = st.tabs(["Consumption Forecast", "Stock Status Matrix (QAT-style)", "AI Advisor"])
 
 with tab1:
     for prod in selected_products:
@@ -113,6 +114,17 @@ with tab1:
         fig.update_layout(title=f"{prod} - {view_level} Forecast", xaxis_title="Date", yaxis_title="Quantity", height=450)
         st.plotly_chart(fig, use_container_width=True)
         
+        # Create forecast table
+        forecast_table = pd.DataFrame({
+            'Month': future['ds'].iloc[-horizon:].dt.strftime('%Y-%m'),
+            'ARIMA': arima_fc.values.round(0).astype(int),
+            'Prophet': prophet_fc['yhat'].iloc[-horizon:].values.round(0).astype(int),
+            'Ensemble (Recommended)': ensemble_fc.round(0).astype(int)
+        })
+        
+        st.subheader(f"Monthly Forecast Table - {prod}")
+        st.dataframe(forecast_table, use_container_width=True)
+        
         st.metric(f"Projected Need next 12 months", f"{int(ensemble_fc[:12].sum()):,}")
 
 with tab2:
@@ -123,14 +135,73 @@ with tab2:
     matrix['MOS'] = (matrix['stock_on_hand'] / matrix['AMC']).round(1)
     st.dataframe(matrix, use_container_width=True)
 
-st.caption("QuantifyAI v0.2.3 | Fixed datetime & grouping issues")
-# Create forecast table
-forecast_table = pd.DataFrame({
-    'Month': future['ds'].iloc[-horizon:].dt.strftime('%Y-%m'),
-    'ARIMA': arima_fc.values.round(0).astype(int),
-    'Prophet': prophet_fc['yhat'].iloc[-horizon:].values.round(0).astype(int),
-    'Ensemble (Recommended)': ensemble_fc.round(0).astype(int)
-        })
+with tab3:
+    st.subheader("🤖 AI Advisor - Ask Questions About Your Data")
+    
+    # Initialize session state for chat history
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+    
+    # Display chat history
+    for message in st.session_state.chat_history:
+        if message['role'] == 'user':
+            st.write(f"**You:** {message['content']}")
+        else:
+            st.write(f"**AI Advisor:** {message['content']}")
+    
+    # User input
+    user_question = st.text_input("Ask the AI Advisor anything about your forecast and stock levels...")
+    
+    if user_question:
+        # Prepare context from current data
+        latest = working_df.groupby('product_name').last().reset_index()
         
-st.subheader(f"Monthly Forecast Table - {prod}")
-st.dataframe(forecast_table, use_container_width=True)
+        context = f"""
+        You are an expert AI advisor for malaria commodity quantification and supply chain management.
+        
+        Current Data Summary:
+        - Products: {', '.join(selected_products)}
+        - View Level: {view_level}
+        - Forecast Horizon: {horizon} months
+        - Data period: {working_df['date'].min().date()} to {working_df['date'].max().date()}
+        
+        Current Stock Status:
+        {latest[['product_name', 'stock_on_hand', 'consumption_qty']].to_string()}
+        
+        Provide actionable insights for supply chain optimization, procurement recommendations, 
+        and risk alerts based on the forecast data. Be concise and specific.
+        """
+        
+        try:
+            client = anthropic.Anthropic(api_key=st.secrets.get("ANTHROPIC_API_KEY"))
+            
+            # Include chat history for context
+            messages = []
+            for msg in st.session_state.chat_history:
+                messages.append({"role": msg['role'], "content": msg['content']})
+            messages.append({"role": "user", "content": user_question})
+            
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1024,
+                system=context,
+                messages=messages
+            )
+            
+            ai_response = response.content[0].text
+            
+            # Store in session history
+            st.session_state.chat_history.append({"role": "user", "content": user_question})
+            st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
+            
+            # Rerun to display new message
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"Error connecting to AI Advisor: {str(e)}")
+    
+    # Auto-generated insights
+    if len(st.session_state.chat_history) == 0:
+        st.info("💡 **Quick Tips:**\n- Ask about procurement recommendations\n- Request stock warnings\n- Ask for monthly ordering suggestions\n- Query seasonal patterns")
+
+st.caption("QuantifyAI v0.2.3 | With Monthly Forecasts & AI Advisor")
